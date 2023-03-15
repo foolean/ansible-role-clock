@@ -1,0 +1,41 @@
+# Copyright (c) 2023, Bennett Samowich <bennett@foolean.org>
+# All rights reserved
+# SPDX short identifier: BSD-3-Clause
+---
+
+# We put the entire role in a block so we can create
+# a role specific tag, which saves the caller from
+# having to do so in their playbook.
+- name: Role foolean/clock
+  block:
+
+    - name: Symlink /etc/localtime to timezone
+      become: true
+      ansible.builtin.file:
+        src: "/usr/share/zoneinfo/{{ clock_timezone }}"
+        dest: "/etc/localtime"
+        state: link
+      notify:
+        - Update timezone (debian)
+
+    - name: Set /etc/timezone
+      become: true
+      ansible.builtin.template:
+        src: 'etc/timezone.j2'
+        dest: '/etc/timezone'
+        owner: 'root'
+        group: 'root'
+        mode: '0644'
+      notify:
+        - Update timezone (debian)
+      when:
+        - ansible_os_family|lower == 'debian'
+
+    # Flush any handlers that we might have called
+    - name: Flush handlers
+      ansible.builtin.meta:
+        flush_handlers
+
+  # Tags to be applied to this role (block)
+  tags:
+    - 'role_foolean_clock'
